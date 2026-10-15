@@ -1,0 +1,94 @@
+{
+  "expo": {
+    "name": "Gotfit",
+    "slug": "Gotfit",
+    "version": "1.4.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/gotfit-app-icon.png",
+    "scheme": "gotfit",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rakotondrasoa.Gotfit",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Gotfit utilise la caméra uniquement lorsque vous choisissez de prendre une photo à joindre à votre profil, une annonce ou un message.",
+        "NSPhotoLibraryUsageDescription": "Gotfit accède aux photos que vous sélectionnez pour votre profil, vos annonces, documents et messages.",
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleLocalizations": [
+          "fr"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#15211B",
+        "foregroundImage": "./assets/images/gotfit-app-icon.png"
+      },
+      "package": "com.rakotondrasoa.Gotfit",
+      "softwareKeyboardLayoutMode": "resize",
+      "predictiveBackGestureEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/gotfit-app-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F6F3EB",
+          "image": "./assets/images/gotfit-logo.png",
+          "imageWidth": 180
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#D9B55B",
+          "defaultChannel": "messages"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
+          },
+          "ios": {
+            "deploymentTarget": "16.4",
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": false
+        }
+      ],
+      "expo-image",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "204b63a9-5eb3-4114-afdd-7e4411637d25"
+      }
+    }
+  }
+}
