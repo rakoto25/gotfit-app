@@ -340,6 +340,14 @@ export type Favorite = {
   annonce?: Annonce | null;
 };
 
+export type CoachFavorite = {
+  id: number;
+  user_id?: number;
+  coach_id: number;
+  coach?: Coach | null;
+  created_at?: string | null;
+};
+
 export type Payment = {
   id: number;
   reservation_id?: number | null;

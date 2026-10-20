@@ -1,19 +1,28 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { AnnonceCard } from '@/components/cards';
+import { AnnonceCard, CoachCard } from '@/components/cards';
 import { AuthGate, Screen, StateView, TopBar } from '@/components/ui';
-import { fetchFavorites } from '@/lib/api';
+import { fetchCoachFavorites, fetchFavorites } from '@/lib/api';
 import { useResource } from '@/hooks/use-resource';
 import { useAuth } from '@/providers/auth-provider';
-import { spacing } from '@/theme';
+import { colors, fonts, spacing } from '@/theme';
 
 export default function FavoritesScreen() {
   const { token } = useAuth();
   const resource = useResource(
-    () => (token ? fetchFavorites(token) : Promise.resolve([])),
+    async () => {
+      if (!token) return { annonces: [], coaches: [] };
+      const [annonces, coaches] = await Promise.all([
+        fetchFavorites(token),
+        fetchCoachFavorites(token),
+      ]);
+      return { annonces, coaches };
+    },
     [token]
   );
+  const annonces = resource.data?.annonces.filter((item) => item.annonce) || [];
+  const coaches = resource.data?.coaches.filter((item) => item.coach) || [];
 
   return (
     <Screen refreshing={resource.refreshing} onRefresh={resource.reload}>
@@ -22,11 +31,29 @@ export default function FavoritesScreen() {
         <AuthGate />
       ) : resource.loading || resource.error ? (
         <StateView loading={resource.loading} error={resource.error} onRetry={resource.reload} />
-      ) : resource.data?.some((item) => item.annonce) ? (
-        <View style={{ gap: spacing.lg, marginTop: spacing.lg }}>
-          {resource.data
-            .filter((item) => item.annonce)
-            .map((favorite) => (
+      ) : annonces.length || coaches.length ? (
+        <View style={styles.content}>
+          {coaches.length ? (
+            <>
+              <Text style={styles.heading}>Mes coachs favoris</Text>
+              {coaches.map((favorite) => (
+                <CoachCard
+                  key={favorite.id}
+                  item={favorite.coach!}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/coaches/[id]',
+                      params: { id: favorite.coach!.id },
+                    })
+                  }
+                />
+              ))}
+            </>
+          ) : null}
+          {annonces.length ? (
+            <>
+              <Text style={styles.heading}>Mes expériences favorites</Text>
+              {annonces.map((favorite) => (
               <AnnonceCard
                 key={favorite.id}
                 item={favorite.annonce!}
@@ -37,11 +64,18 @@ export default function FavoritesScreen() {
                   })
                 }
               />
-            ))}
+              ))}
+            </>
+          ) : null}
         </View>
       ) : (
-        <StateView empty="Touchez le cœur d’une expérience pour la retrouver ici." />
+        <StateView empty="Touchez le cœur d’un coach ou d’une expérience pour le retrouver ici." />
       )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { gap: spacing.lg, marginTop: spacing.lg },
+  heading: { fontFamily: fonts.extraBold, fontSize: 19, color: colors.ink, marginTop: spacing.md },
+});

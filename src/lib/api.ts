@@ -4,6 +4,7 @@ import type {
   ClientHistory,
   ClientNote,
   ClientOnboarding,
+  CoachFavorite,
   Coach,
   CoachRevenue,
   Conversation,
@@ -456,6 +457,24 @@ export async function addFavorite(token: string, annonceId: string | number) {
 
 export async function removeFavorite(token: string, annonceId: string | number) {
   return apiRequest(`/favorites/annonce/${annonceId}`, { method: 'DELETE', token });
+}
+
+export async function fetchCoachFavorites(token: string) {
+  const payload = await apiRequest<{ favorites?: CoachFavorite[] }>('/coach-favorites', {
+    token,
+  });
+  return normalizeArray<CoachFavorite>(payload, ['favorites']);
+}
+
+export async function addCoachFavorite(token: string, coachId: string | number) {
+  return apiRequest<{ favorite?: CoachFavorite }>(`/coach-favorites/${coachId}`, {
+    method: 'POST',
+    token,
+  });
+}
+
+export async function removeCoachFavorite(token: string, coachId: string | number) {
+  return apiRequest(`/coach-favorites/${coachId}`, { method: 'DELETE', token });
 }
 
 export async function reserveAnnonce(

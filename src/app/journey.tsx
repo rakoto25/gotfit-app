@@ -3,26 +3,27 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthGate, Avatar, Button, Screen, StateView, TopBar } from '@/components/ui';
-import { fetchOnboarding, fetchReservations, getAssetUrl } from '@/lib/api';
+import { fetchClientNotes, fetchOnboarding, fetchReservations, getAssetUrl } from '@/lib/api';
 import { annonceTitle, formatDate, hasRole, reservationDate, statusLabel } from '@/lib/format';
 import { useResource } from '@/hooks/use-resource';
 import { useAuth } from '@/providers/auth-provider';
 import { colors, fonts, radii, shadow, spacing } from '@/theme';
-import type { Reservation, User } from '@/types';
+import type { ClientNote, Reservation, User } from '@/types';
 
 export default function JourneyScreen() {
   const { token, user } = useAuth();
   const isCoach = hasRole(user, 'intervenant');
   const resource = useResource(
     async () => {
-      if (!token) return { reservations: [] as Reservation[], goals: 0 };
-      const [reservations, onboarding] = await Promise.all([
+      if (!token) return { reservations: [] as Reservation[], goals: 0, notes: [] as ClientNote[] };
+      const [reservations, onboarding, notes] = await Promise.all([
         fetchReservations(token, isCoach),
         isCoach ? Promise.resolve(null) : fetchOnboarding(token).catch(() => null),
+        !isCoach && user?.id ? fetchClientNotes(token, user.id).catch(() => []) : Promise.resolve([]),
       ]);
-      return { reservations, goals: onboarding?.goals?.length || 0 };
+      return { reservations, goals: onboarding?.goals?.length || 0, notes };
     },
-    [token, isCoach]
+    [token, user?.id, isCoach]
   );
   const reservations = resource.data?.reservations || [];
   const completed = reservations.filter(
@@ -98,11 +99,34 @@ export default function JourneyScreen() {
               ) : (
                 <StateView empty="Vos prochaines reservations apparaitront ici." />
               )}
+              <Text style={styles.heading}>Notes partagees par mes coachs</Text>
+              {resource.data?.notes.length ? (
+                resource.data.notes.map((note) => <SharedNote key={note.id} note={note} />)
+              ) : (
+                <StateView empty="Les notes partagees par vos coachs apparaitront ici." />
+              )}
             </>
           )}
         </>
       )}
     </Screen>
+  );
+}
+
+function SharedNote({ note }: { note: ClientNote }) {
+  return (
+    <View style={styles.note}>
+      <View style={styles.noteHeader}>
+        <Ionicons name="document-text-outline" size={19} color={colors.brandStrong} />
+        <View style={styles.flex}>
+          <Text style={styles.noteTitle}>{note.title || 'Note de suivi'}</Text>
+          <Text style={styles.noteMeta}>
+            {note.intervenant?.name || note.author?.name || 'Coach Gotfit'} · {formatDate(note.created_at, true)}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.noteText}>{note.content}</Text>
+    </View>
   );
 }
 
@@ -169,4 +193,9 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: fonts.extraBold, fontSize: 12, color: colors.ink },
   rowText: { fontFamily: fonts.regular, fontSize: 9, color: colors.muted, marginTop: 2 },
   status: { fontFamily: fonts.bold, fontSize: 9, color: colors.brandStrong },
+  note: { backgroundColor: colors.paper, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.line, padding: spacing.lg, marginBottom: spacing.sm },
+  noteHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  noteTitle: { fontFamily: fonts.extraBold, fontSize: 12, color: colors.ink },
+  noteMeta: { fontFamily: fonts.regular, fontSize: 9, color: colors.muted, marginTop: 2 },
+  noteText: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 18, color: colors.muted, marginTop: spacing.md },
 });

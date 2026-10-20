@@ -66,7 +66,7 @@ export default function ProfileScreen() {
           { icon: 'megaphone-outline', title: 'Mes annonces', route: '/coach/annonces' },
           { icon: 'people-outline', title: 'Forum des coachs', route: '/forum' },
         ]),
-    { icon: 'analytics-outline', title: 'Mon parcours', route: '/journey' },
+    { icon: 'analytics-outline', title: isCoach ? 'Parcours de mes clients' : 'Mon parcours et mes notes', route: '/journey' },
     ...baseItems,
   ] as const;
 

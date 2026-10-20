@@ -2,13 +2,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar, Button, Screen, StateView, Tag, TopBar } from '@/components/ui';
 import {
+  addCoachFavorite,
   fetchCoach,
+  fetchCoachFavorites,
   fetchCoachReviews,
   getAssetUrl,
+  removeCoachFavorite,
   startConversation,
 } from '@/lib/api';
 import {
@@ -16,6 +19,7 @@ import {
   coachName,
   coachTitle,
   formatDate,
+  hasRole,
 } from '@/lib/format';
 import { useResource } from '@/hooks/use-resource';
 import { useAuth } from '@/providers/auth-provider';
@@ -23,11 +27,19 @@ import { colors, fonts, radii, shadow, spacing } from '@/theme';
 
 export default function CoachDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [messaging, setMessaging] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState(false);
   const resource = useResource(() => fetchCoach(id), [id]);
   const reviews = useResource(() => fetchCoachReviews(id), [id]);
+  const favorites = useResource(
+    () => (token && hasRole(user, 'client') ? fetchCoachFavorites(token) : Promise.resolve([])),
+    [token, user?.id]
+  );
   const coach = resource.data;
+  const favorite = Boolean(
+    favorites.data?.some((item) => String(item.coach_id) === String(id))
+  );
   const reviewItems = reviews.data || [];
   const reviewsCount = reviewItems.length || Number(coach?.reviews_count || 0) || 0;
   const averageRating = reviewItems.length
@@ -54,6 +66,25 @@ export default function CoachDetailScreen() {
     }
   }
 
+  async function toggleFavorite() {
+    if (!token) return router.push('/auth/login');
+    if (!hasRole(user, 'client')) return;
+
+    setSavingFavorite(true);
+    try {
+      if (favorite) await removeCoachFavorite(token, id);
+      else await addCoachFavorite(token, id);
+      await favorites.reload();
+    } catch (error) {
+      Alert.alert(
+        'Favoris',
+        error instanceof Error ? error.message : 'Impossible de modifier ce coach favori.'
+      );
+    } finally {
+      setSavingFavorite(false);
+    }
+  }
+
   return (
     <Screen refreshing={resource.refreshing} onRefresh={resource.reload}>
       <TopBar back title="Profil coach" />
@@ -63,6 +94,20 @@ export default function CoachDetailScreen() {
         <>
           <LinearGradient colors={[colors.ink, colors.brandStrong]} style={styles.hero}>
             <View style={styles.heroLights} />
+            {(!user || hasRole(user, 'client')) && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={favorite ? 'Retirer ce coach des favoris' : 'Ajouter ce coach aux favoris'}
+                disabled={savingFavorite}
+                onPress={toggleFavorite}
+                style={styles.favoriteButton}>
+                <Ionicons
+                  name={favorite ? 'heart' : 'heart-outline'}
+                  size={24}
+                  color={favorite ? colors.coral : colors.white}
+                />
+              </Pressable>
+            )}
             <Avatar
               name={coachName(coach)}
               uri={getAssetUrl(coach.photo_url || coach.photo)}
@@ -154,6 +199,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: { borderRadius: radii.xl, padding: spacing.xxl, alignItems: 'center', overflow: 'hidden', ...shadow },
   heroLights: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(217,181,91,.12)', top: -90, right: -60 },
+  favoriteButton: { position: 'absolute', right: spacing.lg, top: spacing.lg, zIndex: 2, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,.14)', alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: fonts.display, fontSize: 32, color: colors.white, marginTop: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 11, color: colors.lime, marginTop: 4 },
   tags: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
